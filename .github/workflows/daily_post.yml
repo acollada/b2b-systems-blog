@@ -9,7 +9,7 @@ jobs:
   autopost:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # <-- Añadir este bloque de permisos
+      contents: write
 
     steps:
       - name: Checkout del repositorio
@@ -30,10 +30,13 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python generate_post.py
 
-      - name: Guardar cambios en GitHub
+      - name: Guardar y subir cambios
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "Bot Automatizado"
           git config --global user.email "bot@tusitio.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git add content/posts/
           git commit -m "auto: nuevo artículo técnico [skip ci]" || exit 0
           git push
