@@ -35,21 +35,30 @@ Estructura obligatoria:
 3. Bloque de código de ejemplo comentado.
 4. Buenas prácticas y errores comunes a evitar."""
 
-print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct (con prefill de asistente)...")
+print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct...")
 response = client.chat.completions.create(
     model="Meta-Llama-3.3-70B-Instruct",
     messages=[
         {"role": "user", "content": prompt},
-        {"role": "assistant", "content": "# "}  # Prefill: Obliga al modelo a arrancar con Markdown técnico
+        {"role": "assistant", "content": "# "}
     ],
     temperature=0.7,
     max_tokens=3000
 )
 
-raw_content = response.choices[0].message.content
+# Extracción robusta adaptada al comportamiento real del gateway
+if isinstance(response, str):
+    raw_content = response
+elif hasattr(response, "choices") and response.choices:
+    raw_content = response.choices[0].message.content
+elif isinstance(response, dict) and "choices" in response:
+    raw_content = response["choices"][0]["message"]["content"]
+else:
+    raw_content = str(response)
+
 body = "# " + raw_content if not raw_content.startswith("# ") else raw_content
 
-if not body or len(body.strip()) < 100:
+if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
     raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
 
 markdown_content = f"""---
