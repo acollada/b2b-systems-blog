@@ -10,7 +10,7 @@ if not api_key:
 
 # Cliente OpenAI apuntando al endpoint accesible de Groq
 client = OpenAI(
-    base_url="https://api.groq.com/openai/v1",
+    base_url="https://api.groq.com/openai/v1/chat/completions",
     api_key=api_key,
 )
 
