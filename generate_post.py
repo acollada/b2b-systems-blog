@@ -37,9 +37,9 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-print(">>> [4/6] Enviando petición al modelo gemini-2.0-flash...")
+print(">>> [4/6] Enviando petición al modelo gemini-3.8-flash...")
 response = client.models.generate_content(
-    model="gemini-2.0-flash",
+    model="gemini-3.8-flash",
     contents=prompt,
 )
 print(">>> [5/6] Respuesta recibida correctamente.")
