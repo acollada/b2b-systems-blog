@@ -8,9 +8,9 @@ gh_pat = os.environ.get("GH_PAT")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT no está definida en los secretos.")
 
-# Endpoint oficial de GitHub Models con autenticación mediante PAT
+# Endpoint nativo y activo de GitHub Models
 client = OpenAI(
-    base_url="https://models.inference.ai.azure.com",
+    base_url="https://models.github.ai/inference",
     api_key=gh_pat,
 )
 
@@ -40,7 +40,7 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-print(">>> [3/4] Generando contenido con gpt-4o-mini (GitHub Models)...")
+print(">>> [3/4] Generando contenido con gpt-4o-mini...")
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[
