@@ -8,7 +8,6 @@ gh_pat = os.environ.get("GH_PAT")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT no está definida en los secretos.")
 
-# Corrección crítica: Se añade '/v1' para apuntar al router de API correcto y evitar el health-check 'OK'
 client = OpenAI(
     base_url="https://models.github.ai/inference/v1",
     api_key=gh_pat,
@@ -46,8 +45,15 @@ response = client.chat.completions.create(
     max_tokens=3000
 )
 
-# Extracción de la respuesta del objeto de OpenAI
-body = response.choices[0].message.content
+# Extracción adaptada al formato de texto directo devuelto por el gateway
+if isinstance(response, str):
+    body = response
+elif hasattr(response, "choices") and response.choices:
+    body = response.choices[0].message.content
+elif isinstance(response, dict) and "choices" in response:
+    body = response["choices"][0]["message"]["content"]
+else:
+    body = str(response)
 
 # Validación de seguridad
 if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
