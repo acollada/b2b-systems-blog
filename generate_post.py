@@ -36,8 +36,8 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-# Endpoint REST oficial y estable de Gemini 1.5 Flash
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+# Endpoint actualizado con el modelo activo oficial
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
 
 payload = {
     "contents": [{
@@ -55,7 +55,6 @@ req = urllib.request.Request(
 
 print(">>> [3/4] Enviando petición HTTP a Gemini API...")
 try:
-    # Timeout de 30 segundos para evitar bloqueos infinitos
     with urllib.request.urlopen(req, timeout=30) as response:
         res_body = json.loads(response.read().decode("utf-8"))
         body = res_body["candidates"][0]["content"]["parts"][0]["text"]
