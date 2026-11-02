@@ -10,8 +10,8 @@ gh_pat = os.environ.get("GH_PAT")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT no está definida en los secretos.")
 
-# Endpoint oficial de Azure AI Inference para GitHub Models
-url = "https://models.inference.ai.azure.com/chat/completions"
+# Endpoint oficial correcto de GitHub Models
+url = "https://models.inference.github.ai/v1/chat/completions"
 
 TOPICS = [
     "Optimización de consultas SQL y gestión de índices en ERPs B2B",
@@ -49,7 +49,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
-print(">>> [3/4] Generando contenido mediante endpoint oficial...")
+print(">>> [3/4] Generando contenido mediante el endpoint oficial de GitHub Models...")
 req = urllib.request.Request(
     url,
     data=json.dumps(payload).encode("utf-8"),
@@ -60,7 +60,6 @@ req = urllib.request.Request(
 try:
     with urllib.request.urlopen(req) as response:
         res_body = response.read().decode("utf-8")
-        print(f"DEBUG - Respuesta cruda: {res_body[:300]}")
         data = json.loads(res_body)
 except urllib.error.HTTPError as e:
     error_body = e.read().decode("utf-8")
