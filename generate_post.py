@@ -27,17 +27,14 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-prompt = f"""Escribe un artículo técnico completo y detallado en español sobre el siguiente tema para un blog de arquitectura de software B2B:
+# Prompt directo y natural sin metainstrucciones restrictivas
+prompt = f"""Desarrolla un artículo técnico completo en formato Markdown sobre el siguiente tema: {selected_topic}.
 
-Tema: {selected_topic}
-
-Estructura requerida:
-1. Requisitos previos y contexto técnico.
-2. Paso a paso de implementación (con listas numeradas).
-3. Bloque de código de ejemplo bien comentado.
-4. Buenas prácticas y errores comunes a evitar.
-
-Formato: Devuelve únicamente el contenido completo en Markdown, sin introducciones ni saludos."""
+Estructura del artículo:
+- Requisitos previos y contexto técnico
+- Pasos de implementación numerados
+- Ejemplo de código comentado
+- Errores comunes y buenas prácticas"""
 
 print(">>> [3/4] Generando contenido con gpt-4o...")
 response = client.chat.completions.create(
@@ -57,9 +54,9 @@ elif isinstance(response, dict) and "choices" in response:
 else:
     body = str(response)
 
-# Validación estricta de longitud
+# Validación de longitud mínima
 if not body or len(body.strip()) < 100:
-    raise ValueError(f"Error crítico: La respuesta del modelo sigue siendo inválida: '{body}'")
+    raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
