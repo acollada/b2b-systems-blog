@@ -8,7 +8,6 @@ gh_pat = os.environ.get("GH_PAT")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT no está definida en los secretos.")
 
-# Endpoint nativo y activo de GitHub Models
 client = OpenAI(
     base_url="https://models.github.ai/inference",
     api_key=gh_pat,
@@ -51,7 +50,15 @@ response = client.chat.completions.create(
     max_tokens=2500
 )
 
-body = response.choices[0].message.content
+# Extracción robusta compatible con objetos, diccionarios o cadenas de texto
+if hasattr(response, "choices") and response.choices:
+    body = response.choices[0].message.content
+elif isinstance(response, dict) and "choices" in response:
+    body = response["choices"][0]["message"]["content"]
+elif isinstance(response, str):
+    body = response
+else:
+    body = str(response)
 
 markdown_content = f"""---
 title: "{selected_topic}"
