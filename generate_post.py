@@ -10,7 +10,7 @@ if not api_key:
 
 # Cliente OpenAI apuntando al endpoint accesible de Groq
 client = OpenAI(
-    base_url="https://api.groq.com/openai/v1/chat/completions",
+    base_url="https://api.groq.com/openai/v1",
     api_key=api_key,
 )
 
@@ -38,7 +38,7 @@ Estructura obligatoria:
 
 print(">>> [3/3] Solicitando inferencia a Llama-3.3-70B vía Groq...")
 response = client.chat.completions.create(
-    model="llama-3.3-70b-versatile",
+    model="openai/gpt-oss-20b",
     messages=[
         {"role": "user", "content": prompt}
     ],
