@@ -1,17 +1,14 @@
 import os
 import datetime
 import random
-from openai import OpenAI
+import requests
 
 print(">>> [1/4] Verificando PAT de GitHub...")
 gh_pat = os.environ.get("GH_PAT")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT no está definida en los secretos.")
 
-client = OpenAI(
-    base_url="https://models.github.ai/inference/v1",
-    api_key=gh_pat,
-)
+url = "https://models.github.ai/inference/v1/chat/completions"
 
 TOPICS = [
     "Optimización de consultas SQL y gestión de índices en ERPs B2B",
@@ -27,7 +24,7 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-prompt = f"""Desarrolla un artículo técnico detallado y completo en formato Markdown sobre el siguiente tema: "{selected_topic}".
+prompt = f"""Escribe un artículo técnico detallado y completo en formato Markdown sobre el siguiente tema: "{selected_topic}".
 
 Estructura obligatoria:
 1. Requisitos previos y contexto técnico.
@@ -35,31 +32,42 @@ Estructura obligatoria:
 3. Bloque de código de ejemplo comentado.
 4. Buenas prácticas y errores comunes a evitar."""
 
-print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct...")
-response = client.chat.completions.create(
-    model="Meta-Llama-3.3-70B-Instruct",
-    messages=[
-        {"role": "user", "content": prompt},
-        {"role": "assistant", "content": "# "}
+headers = {
+    "Authorization": f"Bearer {gh_pat}",
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "model": "Meta-Llama-3.3-70B-Instruct",
+    "messages": [
+        {"role": "user", "content": prompt}
     ],
-    temperature=0.7,
-    max_tokens=3000
-)
+    "temperature": 0.7,
+    "max_tokens": 3000
+}
 
-# Extracción robusta adaptada al comportamiento real del gateway
-if isinstance(response, str):
-    raw_content = response
-elif hasattr(response, "choices") and response.choices:
-    raw_content = response.choices[0].message.content
-elif isinstance(response, dict) and "choices" in response:
-    raw_content = response["choices"][0]["message"]["content"]
+print(">>> [3/4] Generando contenido mediante HTTP POST directo...")
+response = requests.post(url, headers=headers, json=payload)
+
+print(f"Código HTTP recibido: {response.status_code}")
+
+if response.status_code != 200:
+    raise ValueError(f"Error HTTP del servidor ({response.status_code}): {response.text}")
+
+try:
+    data = response.json()
+except Exception as e:
+    raise ValueError(f"La respuesta no es un JSON válido: {response.text}")
+
+# Extracción directa del JSON estándar de completions
+if "choices" in data and len(data["choices"]) > 0:
+    body = data["choices"][0]["message"]["content"]
 else:
-    raw_content = str(response)
+    raise ValueError(f"Estructura JSON inesperada: {data}")
 
-body = "# " + raw_content if not raw_content.startswith("# ") else raw_content
-
+# Validación estricta
 if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
-    raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
+    raise ValueError(f"Error crítico: El modelo devolvió contenido inválido: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
