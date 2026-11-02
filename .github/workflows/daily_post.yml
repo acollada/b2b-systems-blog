@@ -12,21 +12,14 @@ jobs:
       contents: write
 
     steps:
-      - name: Test GitHub API Models Gateway
+      - name: Test via GitHub CLI
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          curl -s -w "\nHTTP Status: %{http_code}\n" \
-            -X POST "https://api.github.com/models/chat/completions" \
-            -H "Authorization: Bearer $GH_PAT" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "model": "Meta-Llama-3.3-70B-Instruct",
-              "messages": [{"role": "user", "content": "Test"}],
-              "max_tokens": 5
-            }'
+          gh api --method POST models/chat/completions \
+            -f model="Meta-Llama-3.3-70B-Instruct" \
+            -f messages='[{"role": "user", "content": "Test"}]' \
+            -F max_tokens=5
       - name: Checkout repository
         uses: actions/checkout@v4
 
