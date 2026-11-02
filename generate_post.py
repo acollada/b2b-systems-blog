@@ -3,10 +3,16 @@ import datetime
 import random
 from openai import OpenAI
 
-# Inicializar el cliente apuntando al endpoint gratuito de Groq
+# Obtener la API Key desde el entorno
+api_key = os.environ.get("GROQ_API_KEY")
+
+if not api_key:
+    raise ValueError("Error: La variable GROQ_API_KEY no está definida en el entorno.")
+
+# Inicializar cliente con el endpoint de Groq
 client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
-    api_key=os.environ.get("GROQ_API_KEY")
+    api_key=api_key
 )
 
 TOPICS = [
