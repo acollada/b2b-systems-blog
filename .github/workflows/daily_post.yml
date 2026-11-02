@@ -12,14 +12,6 @@ jobs:
       contents: write
 
     steps:
-      - name: Test via GitHub CLI
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: |
-          gh api --method POST models/chat/completions \
-            -f model="Meta-Llama-3.3-70B-Instruct" \
-            -f messages='[{"role": "user", "content": "Test"}]' \
-            -F max_tokens=5
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -45,8 +37,8 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          git config --global user.name "Bot Automatizado"
-          git config --global user.email "bot@users.noreply.github.com"
+          git config --global user.name "acollada"
+          git config --global user.email "avcollada@gmail.com"
           
           if git status --porcelain | grep -q .; then
             git add content/posts/
