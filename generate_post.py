@@ -3,13 +3,11 @@ import datetime
 import random
 from openai import OpenAI
 
-# Obtener la API Key desde el entorno
 api_key = os.environ.get("GROQ_API_KEY")
 
 if not api_key:
     raise ValueError("Error: La variable GROQ_API_KEY no está definida en el entorno.")
 
-# Inicializar cliente con el endpoint de Groq
 client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
     api_key=api_key
@@ -39,8 +37,9 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
+# Cambio de modelo a llama3-70B-8192 (soportado oficialmente por Groq)
 response = client.chat.completions.create(
-    model="llama-3.1-8b-instant",
+    model="llama3-70B-8192",
     messages=[{"role": "user", "content": prompt}]
 )
 
