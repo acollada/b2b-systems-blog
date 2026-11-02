@@ -24,6 +24,19 @@ jobs:
                 "messages": [{"role": "user", "content": "Hola"}],
                 "max_tokens": 10
               }'
+      - name: Test Azure AI Inference Endpoint
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
+            -X POST "https://models.inference.ai.azure.com/chat/completions" \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "Meta-Llama-3.3-70B-Instruct",
+              "messages": [{"role": "user", "content": "Test"}],
+              "max_tokens": 5
+            }'
       - name: Checkout repository
         uses: actions/checkout@v4
 
