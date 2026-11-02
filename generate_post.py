@@ -1,15 +1,14 @@
 import os
 import datetime
 import random
-from google import genai
+import json
+import urllib.request
+import urllib.error
 
-print(">>> [1/6] Verificando clave de API...")
+print(">>> [1/4] Verificando clave de API...")
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("Error crítico: La variable GEMINI_API_KEY no está definida.")
-
-print(">>> [2/6] Inicializando cliente de Google GenAI...")
-client = genai.Client(api_key=api_key)
 
 TOPICS = [
     "Optimización de consultas SQL y gestión de índices en ERPs B2B",
@@ -20,7 +19,7 @@ TOPICS = [
 ]
 
 selected_topic = random.choice(TOPICS)
-print(f">>> [3/6] Tema seleccionado: {selected_topic}")
+print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
@@ -37,14 +36,38 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-print(">>> [4/6] Enviando petición al modelo gemini-3.8-flash...")
-response = client.models.generate_content(
-    model="gemini-3.8-flash",
-    contents=prompt,
-)
-print(">>> [5/6] Respuesta recibida correctamente.")
+# Endpoint REST oficial y estable de Gemini 1.5 Flash
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
-body = response.text
+payload = {
+    "contents": [{
+        "parts": [{"text": prompt}]
+    }]
+}
+
+data = json.dumps(payload).encode("utf-8")
+req = urllib.request.Request(
+    url, 
+    data=data, 
+    headers={"Content-Type": "application/json"}, 
+    method="POST"
+)
+
+print(">>> [3/4] Enviando petición HTTP a Gemini API...")
+try:
+    # Timeout de 30 segundos para evitar bloqueos infinitos
+    with urllib.request.urlopen(req, timeout=30) as response:
+        res_body = json.loads(response.read().decode("utf-8"))
+        body = res_body["candidates"][0]["content"]["parts"][0]["text"]
+except urllib.error.HTTPError as e:
+    error_detail = e.read().decode("utf-8")
+    print(f">>> [ERROR] Fallo HTTP {e.code}: {error_detail}")
+    raise SystemExit(1)
+except Exception as e:
+    print(f">>> [ERROR] Fallo de conexión: {e}")
+    raise SystemExit(1)
+
+print(">>> [4/4] Respuesta recibida y procesada con éxito.")
 
 markdown_content = f"""---
 title: "{selected_topic}"
@@ -59,8 +82,7 @@ tags: ["Sistemas", "B2B", "Integraciones"]
 os.makedirs("content/posts", exist_ok=True)
 filename = f"content/posts/post-{slug_date}-{random.randint(100, 999)}.md"
 
-print(f">>> [6/6] Guardando archivo en {filename}...")
 with open(filename, "w", encoding="utf-8") as f:
     f.write(markdown_content)
 
-print("¡Proceso completado con éxito!")
+print(f"Archivo guardado correctamente en: {filename}")
