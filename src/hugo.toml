@@ -1,0 +1,15 @@
+baseURL = 'https://tu-dominio.com/'
+languageCode = 'es-es'
+title = 'Sistemas & Integraciones B2B'
+theme = 'PaperMod'
+
+[params]
+  defaultTheme = 'auto'
+  ShowCodeCopyButtons = true
+  
+[params.assets]
+  disableHLJS = false
+
+# Inserción del script de Google AdSense en el <head>
+[params.analytics.google]
+  # Una vez tengas tu ID de AdSense, se incluye en el head nativo
