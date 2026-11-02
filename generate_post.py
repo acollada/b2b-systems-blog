@@ -1,15 +1,18 @@
 import os
 import datetime
 import random
-import json
-import urllib.request
-import urllib.error
-import time
+from openai import OpenAI
 
-print(">>> [1/4] Verificando clave de API...")
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("Error crítico: La variable GEMINI_API_KEY no está definida.")
+print(">>> [1/4] Inicializando cliente con GitHub Models...")
+github_token = os.environ.get("GITHUB_TOKEN")
+if not github_token:
+    raise ValueError("Error crítico: GITHUB_TOKEN no está disponible en el entorno.")
+
+# Endpoint gratuito nativo de GitHub para modelos de IA
+client = OpenAI(
+    base_url="https://models.inference.ai.azure.com",
+    api_key=github_token,
+)
 
 TOPICS = [
     "Optimización de consultas SQL y gestión de índices en ERPs B2B",
@@ -37,55 +40,17 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
-
-payload = {
-    "contents": [{
-        "parts": [{"text": prompt}]
-    }]
-}
-
-data = json.dumps(payload).encode("utf-8")
-req = urllib.request.Request(
-    url, 
-    data=data, 
-    headers={"Content-Type": "application/json"}, 
-    method="POST"
+print(">>> [3/4] Generando contenido con gpt-4o-mini...")
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[
+        {"role": "system", "content": "Eres un arquitecto de software experto."},
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0.7,
 )
 
-# Mecanismo de reintentos para tolerancia a fallos 503/429
-max_retries = 3
-backoff_factor = 3
-body = None
-
-print(">>> [3/4] Enviando petición HTTP a Gemini API...")
-for attempt in range(max_retries):
-    try:
-        with urllib.request.urlopen(req, timeout=40) as response:
-            res_body = json.loads(response.read().decode("utf-8"))
-            body = res_body["candidates"][0]["content"]["parts"][0]["text"]
-            break
-    except urllib.error.HTTPError as e:
-        error_detail = e.read().decode("utf-8")
-        print(f">>> [ADVERTENCIA] Intento {attempt + 1}/{max_retries} - Fallo HTTP {e.code}: {error_detail}")
-        
-        # Reintentar solo si es error de sobrecarga o límite de tasa
-        if e.code in [503, 429] and attempt < max_retries - 1:
-            sleep_time = backoff_factor ** (attempt + 1)
-            print(f">>> Servidor ocupado. Reintentando en {sleep_time} segundos...")
-            time.sleep(sleep_time)
-            continue
-        print(f">>> [ERROR] Fallo crítico HTTP {e.code}")
-        raise SystemExit(1)
-    except Exception as e:
-        print(f">>> [ERROR] Fallo de conexión: {e}")
-        raise SystemExit(1)
-
-if not body:
-    print(">>> [ERROR] No se pudo obtener contenido tras los reintentos.")
-    raise SystemExit(1)
-
-print(">>> [4/4] Respuesta recibida y procesada con éxito.")
+body = response.choices[0].message.content
 
 markdown_content = f"""---
 title: "{selected_topic}"
@@ -100,7 +65,8 @@ tags: ["Sistemas", "B2B", "Integraciones"]
 os.makedirs("content/posts", exist_ok=True)
 filename = f"content/posts/post-{slug_date}-{random.randint(100, 999)}.md"
 
+print(f">>> [4/4] Guardando archivo en {filename}...")
 with open(filename, "w", encoding="utf-8") as f:
     f.write(markdown_content)
 
-print(f"Archivo guardado correctamente en: {filename}")
+print("¡Proceso completado con éxito!")
