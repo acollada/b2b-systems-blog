@@ -27,7 +27,7 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-prompt = f"""Escribe un artículo técnico detallado y completo en formato Markdown sobre el siguiente tema: "{selected_topic}".
+prompt = f"""Desarrolla un artículo técnico detallado y completo en formato Markdown sobre el siguiente tema: "{selected_topic}".
 
 Estructura obligatoria:
 1. Requisitos previos y contexto técnico.
@@ -35,28 +35,21 @@ Estructura obligatoria:
 3. Bloque de código de ejemplo comentado.
 4. Buenas prácticas y errores comunes a evitar."""
 
-print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct...")
+print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct (con prefill de asistente)...")
 response = client.chat.completions.create(
     model="Meta-Llama-3.3-70B-Instruct",
     messages=[
-        {"role": "user", "content": prompt}
+        {"role": "user", "content": prompt},
+        {"role": "assistant", "content": "# "}  # Prefill: Obliga al modelo a arrancar con Markdown técnico
     ],
     temperature=0.7,
     max_tokens=3000
 )
 
-# Extracción adaptada al formato de texto directo devuelto por el gateway
-if isinstance(response, str):
-    body = response
-elif hasattr(response, "choices") and response.choices:
-    body = response.choices[0].message.content
-elif isinstance(response, dict) and "choices" in response:
-    body = response["choices"][0]["message"]["content"]
-else:
-    body = str(response)
+raw_content = response.choices[0].message.content
+body = "# " + raw_content if not raw_content.startswith("# ") else raw_content
 
-# Validación de seguridad
-if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
+if not body or len(body.strip()) < 100:
     raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
 
 markdown_content = f"""---
