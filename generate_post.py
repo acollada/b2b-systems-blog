@@ -8,9 +8,9 @@ gh_pat = os.environ.get("GH_PAT")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT no está definida en los secretos.")
 
-# Endpoint oficial de GitHub Models
+# Corrección crítica: Se añade '/v1' para apuntar al router de API correcto y evitar el health-check 'OK'
 client = OpenAI(
-    base_url="https://models.github.ai/inference",
+    base_url="https://models.github.ai/inference/v1",
     api_key=gh_pat,
 )
 
@@ -28,13 +28,12 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-# Prompt directo estructurado para Llama 3.3
 prompt = f"""Escribe un artículo técnico detallado y completo en formato Markdown sobre el siguiente tema: "{selected_topic}".
 
-El artículo debe incluir obligatoriamente:
-1. Requisitos previos y contexto técnico para un arquitecto de software B2B.
+Estructura obligatoria:
+1. Requisitos previos y contexto técnico.
 2. Paso a paso de implementación con listas numeradas.
-3. Un bloque de código de ejemplo comentado.
+3. Bloque de código de ejemplo comentado.
 4. Buenas prácticas y errores comunes a evitar."""
 
 print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct...")
@@ -47,15 +46,10 @@ response = client.chat.completions.create(
     max_tokens=3000
 )
 
-# Extracción robusta de la respuesta
-if hasattr(response, "choices") and response.choices:
-    body = response.choices[0].message.content
-elif isinstance(response, dict) and "choices" in response:
-    body = response["choices"][0]["message"]["content"]
-else:
-    body = str(response)
+# Extracción de la respuesta del objeto de OpenAI
+body = response.choices[0].message.content
 
-# Validación de seguridad contra respuestas vacías o erróneas
+# Validación de seguridad
 if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
     raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
 
