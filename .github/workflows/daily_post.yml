@@ -17,10 +17,10 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Instalar dependencias
-        run: pip install google-generativeai
+        run: pip install google-genai
 
       - name: Ejecutar script de generación
         env:
@@ -29,8 +29,8 @@ jobs:
 
       - name: Guardar cambios en GitHub
         run: |
-          git config --global user.name "Admin"
-          git config --global user.email "admin@tusitio.com"
+          git config --global user.name "Bot Automatizado"
+          git config --global user.email "bot@tusitio.com"
           git add content/posts/
           git commit -m "auto: nuevo artículo técnico [skip ci]" || exit 0
           git push

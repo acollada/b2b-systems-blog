@@ -1,16 +1,15 @@
 import os
 import datetime
 import random
-import google.generativeai as genai
+from google import genai
 
 api_key = os.environ.get("GEMINI_API_KEY")
 
 if not api_key:
     raise ValueError("Error: La variable GEMINI_API_KEY no está definida en el entorno.")
 
-# Configurar cliente de Gemini
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Inicializar cliente con el SDK actualizado (google-genai)
+client = genai.Client(api_key=api_key)
 
 TOPICS = [
     "Optimización de consultas SQL y gestión de índices en ERPs B2B",
@@ -36,7 +35,11 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-response = model.generate_content(prompt)
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=prompt,
+)
+
 body = response.text
 
 markdown_content = f"""---
