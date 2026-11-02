@@ -27,24 +27,22 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-prompt = f"""
-Genera un artículo técnico completo y detallado en español sobre: "{selected_topic}".
-Debes actuar como un Arquitecto de Software B2B Senior.
+# Prompt directo para evitar respuestas de confirmación ("OK")
+prompt = f"""Redacta directamente un artículo técnico completo en Markdown sobre: "{selected_topic}".
 
-Estructura obligatoria del artículo:
+Estructura obligatoria:
 1. Requisitos previos y contexto técnico.
-2. Paso a paso de implementación (con listas numeradas).
+2. Paso a paso de implementación (listas numeradas).
 3. Bloque de código comentado.
 4. Buenas prácticas y errores comunes.
 
-IMPORTANTE: Escribe el artículo completo en formato Markdown. No respondas con confirmaciones breves ni texto conversacional.
-"""
+Comienza de inmediato con el contenido del artículo. No incluyas saludos, introducciones ni confirmaciones."""
 
 print(">>> [3/4] Generando contenido con gpt-4o-mini...")
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[
-        {"role": "system", "content": "Eres un arquitecto de software experto que redacta artículos técnicos extensos."},
+        {"role": "system", "content": "Eres un generador automatizado de artículos técnicos en Markdown. Devuelves exclusivamente el texto del artículo solicitado."},
         {"role": "user", "content": prompt}
     ],
     temperature=0.7,
@@ -59,9 +57,9 @@ elif isinstance(response, dict) and "choices" in response:
 else:
     body = str(response)
 
-# Validación de seguridad: si el modelo devuelve un texto muy corto ("OK", errores, etc.), abortar
+# Validación estricta de longitud
 if not body or len(body.strip()) < 100:
-    raise ValueError(f"Error crítico: La respuesta del modelo es inválida o demasiado corta: '{body}'")
+    raise ValueError(f"Error crítico: La respuesta del modelo sigue siendo inválida: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
