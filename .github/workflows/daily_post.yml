@@ -34,16 +34,11 @@ jobs:
           git status
           echo "=== Archivos en content/posts/ ==="
           ls -la content/posts/ || echo "El directorio no existe"
-
-      - name: Commit and push changes
+      - name: Commit and push blog post
         run: |
           git config --global user.name "acollada"
-          git config --global user.email "avcollada@gmail.com"
-          
-          if git status --porcelain | grep -q .; then
-            git add content/posts/
-            git commit -m "auto: nuevo artículo técnico [skip ci]"
-            git push
-          else
-            echo "Aviso: No se detectaron cambios pendientes en Git."
-          fi
+          git config --global user.email "action@github.com"
+          git add content/posts/
+          git commit -m "auto: nuevo artículo técnico [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push origin main
