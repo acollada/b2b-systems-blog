@@ -8,6 +8,7 @@ gh_pat = os.environ.get("GH_PAT")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT no está definida en los secretos.")
 
+# Endpoint oficial de GitHub Models
 client = OpenAI(
     base_url="https://models.github.ai/inference",
     api_key=gh_pat,
@@ -27,26 +28,36 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-# Prompt directo y natural sin metainstrucciones restrictivas
-prompt = f"""Desarrolla un artículo técnico completo en formato Markdown sobre el siguiente tema: {selected_topic}.
+# Instrucción de sistema estricta para evitar respuestas de cortesía o "OK"
+system_instruction = (
+    "Eres un arquitecto de software B2B especializado en documentación técnica. "
+    "Tu única función es redactar artículos técnicos completos en formato Markdown. "
+    "Está estrictamente prohibido responder con acuses de recibo, confirmaciones como 'OK' o saludos. "
+    "Genera siempre el contenido del artículo de forma íntegra."
+)
 
-Estructura del artículo:
-- Requisitos previos y contexto técnico
-- Pasos de implementación numerados
-- Ejemplo de código comentado
-- Errores comunes y buenas prácticas"""
+user_prompt = f"""
+Escribe un artículo técnico detallado en Markdown sobre el siguiente tema: "{selected_topic}".
+
+Estructura obligatoria que debe contener el texto:
+1. Requisitos previos y contexto técnico.
+2. Paso a paso de implementación (con listas numeradas).
+3. Bloque de código comentado.
+4. Buenas prácticas y errores comunes.
+"""
 
 print(">>> [3/4] Generando contenido con gpt-4o...")
 response = client.chat.completions.create(
     model="gpt-4o",
     messages=[
-        {"role": "user", "content": prompt}
+        {"role": "system", "content": system_instruction},
+        {"role": "user", "content": user_prompt}
     ],
-    temperature=0.7,
+    temperature=0.3,  # Menor temperatura para evitar respuestas erráticas o conversacionales
     max_tokens=3000
 )
 
-# Extracción de la respuesta
+# Extracción robusta de la respuesta
 if hasattr(response, "choices") and response.choices:
     body = response.choices[0].message.content
 elif isinstance(response, dict) and "choices" in response:
@@ -54,9 +65,9 @@ elif isinstance(response, dict) and "choices" in response:
 else:
     body = str(response)
 
-# Validación de longitud mínima
-if not body or len(body.strip()) < 100:
-    raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
+# Validación estricta para cortar la ejecución si vuelve a fallar
+if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
+    raise ValueError(f"Error crítico: El modelo devolvió una respuesta inválida: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
