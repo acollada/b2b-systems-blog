@@ -1,7 +1,9 @@
 import os
 import datetime
 import random
-import requests
+import json
+import urllib.request
+import urllib.error
 
 print(">>> [1/4] Verificando PAT de GitHub...")
 gh_pat = os.environ.get("GH_PAT")
@@ -32,11 +34,6 @@ Estructura obligatoria:
 3. Bloque de código de ejemplo comentado.
 4. Buenas prácticas y errores comunes a evitar."""
 
-headers = {
-    "Authorization": f"Bearer {gh_pat}",
-    "Content-Type": "application/json"
-}
-
 payload = {
     "model": "Meta-Llama-3.3-70B-Instruct",
     "messages": [
@@ -46,26 +43,34 @@ payload = {
     "max_tokens": 3000
 }
 
-print(">>> [3/4] Generando contenido mediante HTTP POST directo...")
-response = requests.post(url, headers=headers, json=payload)
+headers = {
+    "Authorization": f"Bearer {gh_pat}",
+    "Content-Type": "application/json"
+}
 
-print(f"Código HTTP recibido: {response.status_code}")
-
-if response.status_code != 200:
-    raise ValueError(f"Error HTTP del servidor ({response.status_code}): {response.text}")
+print(">>> [3/4] Generando contenido mediante urllib nativo...")
+req = urllib.request.Request(
+    url,
+    data=json.dumps(payload).encode("utf-8"),
+    headers=headers,
+    method="POST"
+)
 
 try:
-    data = response.json()
-except Exception as e:
-    raise ValueError(f"La respuesta no es un JSON válido: {response.text}")
+    with urllib.request.urlopen(req) as response:
+        res_body = response.read().decode("utf-8")
+        data = json.loads(res_body)
+except urllib.error.HTTPError as e:
+    error_body = e.read().decode("utf-8")
+    raise ValueError(f"Error HTTP del servidor ({e.code}): {error_body}")
 
-# Extracción directa del JSON estándar de completions
+# Extracción de la respuesta
 if "choices" in data and len(data["choices"]) > 0:
     body = data["choices"][0]["message"]["content"]
 else:
     raise ValueError(f"Estructura JSON inesperada: {data}")
 
-# Validación estricta
+# Validación de seguridad
 if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
     raise ValueError(f"Error crítico: El modelo devolvió contenido inválido: '{body}'")
 
