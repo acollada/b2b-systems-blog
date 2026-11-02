@@ -12,11 +12,18 @@ jobs:
       contents: write
 
     steps:
-      - name: Diagnosticar conectividad DNS
+      - name: Test GitHub Models Gateway
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          echo "Probando resolución de Azure AI Inference..."
-          nslookup models.inference.ai.azure.com || true
-          curl -Iv https://models.inference.ai.azure.com || true
+          curl -X POST "https://models.github.ai/inference/v1/chat/completions" \
+              -H "Authorization: Bearer $GH_PAT" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "model": "Meta-Llama-3.3-70B-Instruct",
+                "messages": [{"role": "user", "content": "Hola"}],
+                "max_tokens": 10
+              }'
       - name: Checkout repository
         uses: actions/checkout@v4
 
