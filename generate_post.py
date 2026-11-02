@@ -3,17 +3,14 @@ import datetime
 import random
 from openai import OpenAI
 
-print(">>> [INICIO] Arrancando generador de posts...")
-
-# 1. Verificación de credenciales
+print(">>> [1/4] Verificando credenciales...")
 gh_pat = os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN")
 if not gh_pat:
-    raise ValueError("Error crítico: No se encontró la variable GH_PAT ni GITHUB_TOKEN.")
-print(">>> [1/4] Token verificado correctamente.")
+    raise ValueError("Error crítico: La variable GH_PAT o GITHUB_TOKEN no está definida en los secretos.")
 
-# Endpoint oficial de GitHub Models (Azure AI Inference)
+# Endpoint oficial con resolución DNS válida en GitHub Actions
 client = OpenAI(
-    base_url="https://models.inference.ai.azure.com",
+    base_url="https://models.github.ai/inference/v1",
     api_key=gh_pat,
 )
 
@@ -39,7 +36,7 @@ Estructura obligatoria:
 3. Bloque de código de ejemplo comentado.
 4. Buenas prácticas y errores comunes a evitar."""
 
-print(">>> [3/4] Solicitando inferencia al modelo (Meta-Llama-3.3-70B-Instruct)...")
+print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct...")
 response = client.chat.completions.create(
     model="Meta-Llama-3.3-70B-Instruct",
     messages=[
@@ -49,10 +46,19 @@ response = client.chat.completions.create(
     max_tokens=3000
 )
 
-body = response.choices[0].message.content
+# Extracción unificada compatible con objeto estructurado o respuesta en texto plano
+if isinstance(response, str):
+    body = response
+elif hasattr(response, "choices") and response.choices:
+    body = response.choices[0].message.content
+elif isinstance(response, dict) and "choices" in response:
+    body = response["choices"][0]["message"]["content"]
+else:
+    body = str(response)
 
-if not body or len(body.strip()) < 100:
-    raise ValueError(f"Error crítico: El modelo devolvió una respuesta vacía o inválida: '{body}'")
+# Validación estricta de contenido válido
+if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
+    raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
@@ -64,17 +70,11 @@ tags: ["Sistemas", "B2B", "Integraciones"]
 {body}
 """
 
-# Asegurar directorio y escritura física
-output_dir = "content/posts"
-os.makedirs(output_dir, exist_ok=True)
-filename = f"{output_dir}/post-{slug_date}-{random.randint(100, 999)}.md"
+os.makedirs("content/posts", exist_ok=True)
+filename = f"content/posts/post-{slug_date}-{random.randint(100, 999)}.md"
 
-print(f">>> [4/4] Escribiendo archivo físico en: {filename}")
+print(f">>> [4/4] Guardando archivo en {filename}...")
 with open(filename, "w", encoding="utf-8") as f:
     f.write(markdown_content)
 
-# Verificación de que el archivo existe realmente
-if os.path.exists(filename):
-    print(f"¡Éxito! Archivo creado correctamente. Tamaño: {os.path.getsize(filename)} bytes.")
-else:
-    raise FileNotFoundError(f"Error crítico: No se pudo generar el archivo en {filename}")
+print("¡Artículo generado y guardado con éxito!")
