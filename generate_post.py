@@ -3,12 +3,12 @@ import datetime
 import random
 from openai import OpenAI
 
-print(">>> [1/4] Verificando credenciales...")
+print(">>> [1/4] Verificando PAT de GitHub...")
 gh_pat = os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT o GITHUB_TOKEN no está definida en los secretos.")
 
-# Endpoint oficial con resolución DNS válida en GitHub Actions
+# Endpoint original que resuelve correctamente en GitHub Actions
 client = OpenAI(
     base_url="https://models.github.ai/inference/v1",
     api_key=gh_pat,
@@ -46,7 +46,7 @@ response = client.chat.completions.create(
     max_tokens=3000
 )
 
-# Extracción unificada compatible con objeto estructurado o respuesta en texto plano
+# Extracción robusta adaptada al comportamiento de la pasarela
 if isinstance(response, str):
     body = response
 elif hasattr(response, "choices") and response.choices:
@@ -56,9 +56,9 @@ elif isinstance(response, dict) and "choices" in response:
 else:
     body = str(response)
 
-# Validación estricta de contenido válido
+# Validación de control para detectar respuesta de health-check ("OK")
 if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
-    raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
+    raise ValueError(f"Error crítico: La pasarela devolvió una respuesta de estado en lugar de inferencia: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
