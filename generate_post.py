@@ -3,9 +3,12 @@ import datetime
 import random
 from openai import OpenAI
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Inicializar el cliente apuntando al endpoint gratuito de Groq
+client = OpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=os.environ.get("GROQ_API_KEY")
+)
 
-# Matriz de temas técnicos B2B para rotación automática
 TOPICS = [
     "Optimización de consultas SQL y gestión de índices en ERPs B2B",
     "Consumo de APIs REST externas mediante HttpClient y autenticación OAuth2",
@@ -31,13 +34,12 @@ Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin i
 """
 
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="llama-3.1-8b-instant",
     messages=[{"role": "user", "content": prompt}]
 )
 
 body = response.choices[0].message.content
 
-# Formatear con el Front Matter que exige Hugo
 markdown_content = f"""---
 title: "{selected_topic}"
 date: {date_str}
@@ -48,7 +50,6 @@ tags: ["Sistemas", "B2B", "Integraciones"]
 {body}
 """
 
-# Guardar en la carpeta de contenidos
 os.makedirs("content/posts", exist_ok=True)
 filename = f"content/posts/post-{slug_date}-{random.randint(100, 999)}.md"
 
