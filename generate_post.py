@@ -28,37 +28,40 @@ date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M
 slug_date = datetime.date.today().isoformat()
 
 prompt = f"""
-Actúa como un Arquitecto de Software B2B Senior. Escribe un artículo técnico completo y práctico en español sobre: "{selected_topic}".
+Genera un artículo técnico completo y detallado en español sobre: "{selected_topic}".
+Debes actuar como un Arquitecto de Software B2B Senior.
 
-Estructura requerida:
+Estructura obligatoria del artículo:
 1. Requisitos previos y contexto técnico.
-2. Paso a paso de resolución o implementación (listas numeradas).
-3. Ejemplo de código bien comentado.
-4. Buenas prácticas para evitar errores comunes.
+2. Paso a paso de implementación (con listas numeradas).
+3. Bloque de código comentado.
+4. Buenas prácticas y errores comunes.
 
-Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
+IMPORTANTE: Escribe el artículo completo en formato Markdown. No respondas con confirmaciones breves ni texto conversacional.
 """
 
 print(">>> [3/4] Generando contenido con gpt-4o-mini...")
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[
-        {"role": "system", "content": "Eres un arquitecto de software experto."},
+        {"role": "system", "content": "Eres un arquitecto de software experto que redacta artículos técnicos extensos."},
         {"role": "user", "content": prompt}
     ],
     temperature=0.7,
-    max_tokens=2500
+    max_tokens=3000
 )
 
-# Extracción robusta compatible con objetos, diccionarios o cadenas de texto
+# Extracción robusta de la respuesta
 if hasattr(response, "choices") and response.choices:
     body = response.choices[0].message.content
 elif isinstance(response, dict) and "choices" in response:
     body = response["choices"][0]["message"]["content"]
-elif isinstance(response, str):
-    body = response
 else:
     body = str(response)
+
+# Validación de seguridad: si el modelo devuelve un texto muy corto ("OK", errores, etc.), abortar
+if not body or len(body.strip()) < 100:
+    raise ValueError(f"Error crítico: La respuesta del modelo es inválida o demasiado corta: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
@@ -77,4 +80,4 @@ print(f">>> [4/4] Guardando archivo en {filename}...")
 with open(filename, "w", encoding="utf-8") as f:
     f.write(markdown_content)
 
-print("¡Proceso completado con éxito!")
+print("¡Artículo generado y guardado con éxito!")
