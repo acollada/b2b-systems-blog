@@ -12,7 +12,7 @@ jobs:
       contents: write
 
     steps:
-      - name: Diagniscar conectividad DNS
+      - name: Diagnosticar conectividad DNS
         run: |
           echo "Probando resolución de Azure AI Inference..."
           nslookup models.inference.ai.azure.com || true
