@@ -8,6 +8,9 @@ on:
 jobs:
   autopost:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # <-- Añadir este bloque de permisos
+
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
