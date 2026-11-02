@@ -12,6 +12,11 @@ jobs:
       contents: write
 
     steps:
+      - name: Diagniscar conectividad DNS
+        run: |
+          echo "Probando resolución de Azure AI Inference..."
+          nslookup models.inference.ai.azure.com || true
+          curl -Iv https://models.inference.ai.azure.com || true
       - name: Checkout repository
         uses: actions/checkout@v4
 
