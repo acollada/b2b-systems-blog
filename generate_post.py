@@ -28,32 +28,22 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-# Instrucción de sistema estricta para evitar respuestas de cortesía o "OK"
-system_instruction = (
-    "Eres un arquitecto de software B2B especializado en documentación técnica. "
-    "Tu única función es redactar artículos técnicos completos en formato Markdown. "
-    "Está estrictamente prohibido responder con acuses de recibo, confirmaciones como 'OK' o saludos. "
-    "Genera siempre el contenido del artículo de forma íntegra."
-)
+# Prompt directo estructurado para Llama 3.3
+prompt = f"""Escribe un artículo técnico detallado y completo en formato Markdown sobre el siguiente tema: "{selected_topic}".
 
-user_prompt = f"""
-Escribe un artículo técnico detallado en Markdown sobre el siguiente tema: "{selected_topic}".
+El artículo debe incluir obligatoriamente:
+1. Requisitos previos y contexto técnico para un arquitecto de software B2B.
+2. Paso a paso de implementación con listas numeradas.
+3. Un bloque de código de ejemplo comentado.
+4. Buenas prácticas y errores comunes a evitar."""
 
-Estructura obligatoria que debe contener el texto:
-1. Requisitos previos y contexto técnico.
-2. Paso a paso de implementación (con listas numeradas).
-3. Bloque de código comentado.
-4. Buenas prácticas y errores comunes.
-"""
-
-print(">>> [3/4] Generando contenido con gpt-4o...")
+print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct...")
 response = client.chat.completions.create(
-    model="gpt-4o",
+    model="Meta-Llama-3.3-70B-Instruct",
     messages=[
-        {"role": "system", "content": system_instruction},
-        {"role": "user", "content": user_prompt}
+        {"role": "user", "content": prompt}
     ],
-    temperature=0.3,  # Menor temperatura para evitar respuestas erráticas o conversacionales
+    temperature=0.7,
     max_tokens=3000
 )
 
@@ -65,9 +55,9 @@ elif isinstance(response, dict) and "choices" in response:
 else:
     body = str(response)
 
-# Validación estricta para cortar la ejecución si vuelve a fallar
+# Validación de seguridad contra respuestas vacías o erróneas
 if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
-    raise ValueError(f"Error crítico: El modelo devolvió una respuesta inválida: '{body}'")
+    raise ValueError(f"Error crítico: Respuesta inválida del modelo: '{body}'")
 
 markdown_content = f"""---
 title: "{selected_topic}"
