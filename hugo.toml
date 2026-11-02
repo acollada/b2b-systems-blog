@@ -1,6 +1,5 @@
 baseURL = "https://acollada.github.io/b2b-systems-blog/"
 languageCode = "es-es"
-title = "b2b-systems-blog"
 title = 'Sistemas & Integraciones B2B'
 theme = 'PaperMod'
 
