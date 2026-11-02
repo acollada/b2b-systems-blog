@@ -8,7 +8,7 @@ api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("Error: La variable GEMINI_API_KEY no está definida en el entorno.")
 
-# Inicializar cliente con el SDK actualizado (google-genai)
+# Inicializar cliente con el SDK google-genai
 client = genai.Client(api_key=api_key)
 
 TOPICS = [
@@ -35,8 +35,9 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
+# Actualización del modelo al recomendado oficialmente: gemini-3.8-flash
 response = client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-3.8-flash",
     contents=prompt,
 )
 
