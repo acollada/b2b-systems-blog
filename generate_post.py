@@ -1,17 +1,16 @@
 import os
 import datetime
 import random
-from openai import OpenAI
+import google.generativeai as genai
 
-api_key = os.environ.get("GROQ_API_KEY")
+api_key = os.environ.get("GEMINI_API_KEY")
 
 if not api_key:
-    raise ValueError("Error: La variable GROQ_API_KEY no está definida en el entorno.")
+    raise ValueError("Error: La variable GEMINI_API_KEY no está definida en el entorno.")
 
-client = OpenAI(
-    base_url="https://api.groq.com/openai/v1",
-    api_key=api_key
-)
+# Configurar cliente de Gemini
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 TOPICS = [
     "Optimización de consultas SQL y gestión de índices en ERPs B2B",
@@ -37,13 +36,8 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-# Cambio de modelo a llama3-70B-8192 (soportado oficialmente por Groq)
-response = client.chat.completions.create(
-    model="llama3-70B-8192",
-    messages=[{"role": "user", "content": prompt}]
-)
-
-body = response.choices[0].message.content
+response = model.generate_content(prompt)
+body = response.text
 
 markdown_content = f"""---
 title: "{selected_topic}"
