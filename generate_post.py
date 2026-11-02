@@ -3,14 +3,13 @@ import datetime
 import random
 from openai import OpenAI
 
-print(">>> [1/4] Verificando PAT de GitHub...")
 gh_pat = os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN")
 if not gh_pat:
     raise ValueError("Error crítico: La variable GH_PAT o GITHUB_TOKEN no está definida en los secretos.")
 
-# Endpoint original que resuelve correctamente en GitHub Actions
+# Endpoint oficial de API para GitHub Models
 client = OpenAI(
-    base_url="https://models.github.ai/inference/v1",
+    base_url="https://models.inference.ai.azure.com",
     api_key=gh_pat,
 )
 
@@ -23,7 +22,7 @@ TOPICS = [
 ]
 
 selected_topic = random.choice(TOPICS)
-print(f">>> [2/4] Tema seleccionado: {selected_topic}")
+print(f">>> Tema seleccionado: {selected_topic}")
 
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
@@ -36,7 +35,6 @@ Estructura obligatoria:
 3. Bloque de código de ejemplo comentado.
 4. Buenas prácticas y errores comunes a evitar."""
 
-print(">>> [3/4] Generando contenido con Meta-Llama-3.3-70B-Instruct...")
 response = client.chat.completions.create(
     model="Meta-Llama-3.3-70B-Instruct",
     messages=[
@@ -46,19 +44,10 @@ response = client.chat.completions.create(
     max_tokens=3000
 )
 
-# Extracción robusta adaptada al comportamiento de la pasarela
-if isinstance(response, str):
-    body = response
-elif hasattr(response, "choices") and response.choices:
-    body = response.choices[0].message.content
-elif isinstance(response, dict) and "choices" in response:
-    body = response["choices"][0]["message"]["content"]
-else:
-    body = str(response)
+body = response.choices[0].message.content
 
-# Validación de control para detectar respuesta de health-check ("OK")
-if not body or len(body.strip()) < 100 or body.strip().startswith("OK"):
-    raise ValueError(f"Error crítico: La pasarela devolvió una respuesta de estado en lugar de inferencia: '{body}'")
+if not body or len(body.strip()) < 100:
+    raise ValueError(f"Error crítico: Respuesta vacía o inválida del modelo.")
 
 markdown_content = f"""---
 title: "{selected_topic}"
@@ -73,8 +62,7 @@ tags: ["Sistemas", "B2B", "Integraciones"]
 os.makedirs("content/posts", exist_ok=True)
 filename = f"content/posts/post-{slug_date}-{random.randint(100, 999)}.md"
 
-print(f">>> [4/4] Guardando archivo en {filename}...")
 with open(filename, "w", encoding="utf-8") as f:
     f.write(markdown_content)
 
-print("¡Artículo generado y guardado con éxito!")
+print(f"¡Artículo generado y guardado en {filename}!")
