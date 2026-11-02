@@ -4,6 +4,7 @@ import random
 import json
 import urllib.request
 import urllib.error
+import time
 
 print(">>> [1/4] Verificando clave de API...")
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -36,7 +37,6 @@ Estructura requerida:
 Formato de salida: Devuelve ÚNICAMENTE el contenido en Markdown técnico, sin introducciones vacías.
 """
 
-# Endpoint actualizado con el modelo activo oficial
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
 
 payload = {
@@ -53,17 +53,36 @@ req = urllib.request.Request(
     method="POST"
 )
 
+# Mecanismo de reintentos para tolerancia a fallos 503/429
+max_retries = 3
+backoff_factor = 3
+body = None
+
 print(">>> [3/4] Enviando petición HTTP a Gemini API...")
-try:
-    with urllib.request.urlopen(req, timeout=30) as response:
-        res_body = json.loads(response.read().decode("utf-8"))
-        body = res_body["candidates"][0]["content"]["parts"][0]["text"]
-except urllib.error.HTTPError as e:
-    error_detail = e.read().decode("utf-8")
-    print(f">>> [ERROR] Fallo HTTP {e.code}: {error_detail}")
-    raise SystemExit(1)
-except Exception as e:
-    print(f">>> [ERROR] Fallo de conexión: {e}")
+for attempt in range(max_retries):
+    try:
+        with urllib.request.urlopen(req, timeout=40) as response:
+            res_body = json.loads(response.read().decode("utf-8"))
+            body = res_body["candidates"][0]["content"]["parts"][0]["text"]
+            break
+    except urllib.error.HTTPError as e:
+        error_detail = e.read().decode("utf-8")
+        print(f">>> [ADVERTENCIA] Intento {attempt + 1}/{max_retries} - Fallo HTTP {e.code}: {error_detail}")
+        
+        # Reintentar solo si es error de sobrecarga o límite de tasa
+        if e.code in [503, 429] and attempt < max_retries - 1:
+            sleep_time = backoff_factor ** (attempt + 1)
+            print(f">>> Servidor ocupado. Reintentando en {sleep_time} segundos...")
+            time.sleep(sleep_time)
+            continue
+        print(f">>> [ERROR] Fallo crítico HTTP {e.code}")
+        raise SystemExit(1)
+    except Exception as e:
+        print(f">>> [ERROR] Fallo de conexión: {e}")
+        raise SystemExit(1)
+
+if not body:
+    print(">>> [ERROR] No se pudo obtener contenido tras los reintentos.")
     raise SystemExit(1)
 
 print(">>> [4/4] Respuesta recibida y procesada con éxito.")
