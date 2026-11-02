@@ -27,29 +27,29 @@ print(f">>> [2/4] Tema seleccionado: {selected_topic}")
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 slug_date = datetime.date.today().isoformat()
 
-# Prompt directo para evitar respuestas de confirmación ("OK")
-prompt = f"""Redacta directamente un artículo técnico completo en Markdown sobre: "{selected_topic}".
+prompt = f"""Escribe un artículo técnico completo y detallado en español sobre el siguiente tema para un blog de arquitectura de software B2B:
 
-Estructura obligatoria:
+Tema: {selected_topic}
+
+Estructura requerida:
 1. Requisitos previos y contexto técnico.
-2. Paso a paso de implementación (listas numeradas).
-3. Bloque de código comentado.
-4. Buenas prácticas y errores comunes.
+2. Paso a paso de implementación (con listas numeradas).
+3. Bloque de código de ejemplo bien comentado.
+4. Buenas prácticas y errores comunes a evitar.
 
-Comienza de inmediato con el contenido del artículo. No incluyas saludos, introducciones ni confirmaciones."""
+Formato: Devuelve únicamente el contenido completo en Markdown, sin introducciones ni saludos."""
 
-print(">>> [3/4] Generando contenido con gpt-4o-mini...")
+print(">>> [3/4] Generando contenido con gpt-4o...")
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="gpt-4o",
     messages=[
-        {"role": "system", "content": "Eres un generador automatizado de artículos técnicos en Markdown. Devuelves exclusivamente el texto del artículo solicitado."},
         {"role": "user", "content": prompt}
     ],
     temperature=0.7,
     max_tokens=3000
 )
 
-# Extracción robusta de la respuesta
+# Extracción de la respuesta
 if hasattr(response, "choices") and response.choices:
     body = response.choices[0].message.content
 elif isinstance(response, dict) and "choices" in response:
