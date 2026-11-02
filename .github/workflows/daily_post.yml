@@ -12,39 +12,38 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout del repositorio
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: true
 
-      - name: Configurar Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Instalar dependencias
+      - name: Install dependencies
         run: pip install openai
 
-      - name: Ejecutar script de generación
+      - name: Run post generator
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
-          PYTHONUNBUFFERED: "1"
         run: python generate_post.py
+
+      - name: Verify generated files
+        run: |
+          echo "=== Estado actual del repositorio ==="
+          git status
+          echo "=== Archivos en content/posts/ ==="
+          ls -la content/posts/ || echo "El directorio no existe"
 
       - name: Commit and push changes
         run: |
-          git config --global user.name "acollada"
-          git config --global user.email "avcollada@gmail.com"
-          git remote set-url origin https://github.com/acollada/b2b-systems-blog.git
+          git config --global user.name "Bot Automatizado"
+          git config --global user.email "bot@users.noreply.github.com"
           
-          # Crear el directorio si no existe para evitar el error 128
-          mkdir -p content/posts/
-          
-          # Comprobar si hay cambios reales antes de añadir y commitear
           if git status --porcelain | grep -q .; then
             git add content/posts/
             git commit -m "auto: nuevo artículo técnico [skip ci]"
             git push
           else
-            echo "No hay cambios nuevos para publicar."
+            echo "Aviso: No se detectaron cambios pendientes en Git."
           fi
