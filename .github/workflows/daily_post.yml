@@ -39,6 +39,6 @@ jobs:
           git config --global user.name "acollada"
           git config --global user.email "action@github.com"
           git add content/posts/
-          git commit -m "auto: nuevo artículo técnico [skip ci]" || echo "No changes to commit"
+          git commit -m "auto: nuevo artículo técnico" || echo "No changes to commit"
           git pull --rebase origin main
           git push origin main
