@@ -18,47 +18,59 @@ client = OpenAI(
     api_key=api_key,
 )
 
-print(">>> [1.5/3] Seleccionando modelo de chat estable en Groq...")
-# Modelos preferidos orientados a generación de texto y código en orden de prioridad
-PREFERRED_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-70b-versatile",
-    "llama-3.1-8b-instant",
-]
-selected_model = "llama-3.3-70b-versatile"  # Fallback seguro por defecto
+print(
+    ">>> [1.5/3] Descubriendo y ordenando modelos de chat estables en Groq..."
+)
 
+# Lista base de respaldo en orden de preferencia
+fallback_models = [
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+    "llama3-8b-8192",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+]
+
+candidate_models = []
 try:
   models_response = client.models.list()
   available_ids = [m.id for m in models_response.data]
 
-  # Buscar primero entre los modelos preferidos conocidos
-  found = False
-  for model_candidate in PREFERRED_MODELS:
-    if model_candidate in available_ids:
-      selected_model = model_candidate
-      found = True
-      break
+  # Filtrar modelos de chat aptos (excluyendo guards, embeds, audio, etc.)
+  chat_models = [
+      m
+      for m in available_ids
+      if not any(
+          x in m.lower()
+          for x in [
+              "guard",
+              "embed",
+              "whisper",
+              "vision",
+              "moderation",
+              "prompt",
+          ]
+      )
+  ]
 
-  # Si no está en la lista preferida, buscar cualquier modelo de chat válido excluyendo guards/embeds
-  if not found:
-    chat_models = [
-        m
-        for m in available_ids
-        if any(k in m for k in ["70b", "8b", "inst", "vers"])
-        and not any(
-            x in m.lower()
-            for x in ["guard", "embed", "whisper", "vision", "moderation"]
-        )
-    ]
-    if chat_models:
-      selected_model = chat_models[0]
-except Exception as e:
-  print(
-      f"Aviso al listar modelos ({e}), usando modelo por defecto:"
-      f" {selected_model}"
+  # Priorizar los que contengan 'llama' o 'mixtral'
+  sorted_chat = sorted(
+      chat_models,
+      key=lambda x: (
+          0
+          if "llama" in x.lower()
+          else (1 if "mixtral" in x.lower() else 2)
+      ),
   )
 
-print(f">>> Modelo seleccionado: {selected_model}")
+  # Combinar descubiertos con respaldos garantizando unicidad
+  candidate_models = list(dict.fromkeys(sorted_chat + fallback_models))
+except Exception as e:
+  print(
+      f"Aviso al listar modelos dinámicamente ({e}), usando lista de respaldo"
+      " predefinida."
+  )
+  candidate_models = fallback_models
 
 TOPICS = [
     (
@@ -98,9 +110,7 @@ for filepath in glob.glob("content/posts/*.md"):
   except Exception:
     pass
 
-# Filtrar temas que ya hayan sido publicados
 available_topics = [t for t in TOPICS if t not in existing_titles]
-
 if not available_topics:
   print(">>> Aviso: Todos los temas ya han sido publicados. Reiniciando ciclo.")
   available_topics = TOPICS
@@ -112,9 +122,7 @@ date_str = datetime.datetime.now(datetime.timezone.utc).strftime(
     "%Y-%m-%dT%H:%M:%SZ"
 )
 slug_date = datetime.date.today().isoformat()
-timestamp_suffix = int(
-    time.time() * 1000
-)  # Sufijo único para evitar colisiones de ficheros
+timestamp_suffix = int(time.time() * 1000)
 
 prompt = f"""Escribe un artículo técnico avanzado y detallado en formato Markdown sobre el desarrollo en Microsoft Dynamics 365 Business Central (lenguaje AL) centrado en el siguiente tema: "{selected_topic}".
 
@@ -124,13 +132,33 @@ Estructura obligatoria:
 3. Bloque de código AL de ejemplo comentado y optimizado (usando sintaxis limpia y buenas prácticas de AL).
 4. Buenas prácticas de rendimiento, escalabilidad y errores comunes a evitar."""
 
-print(f">>> [3/3] Solicitando inferencia a {selected_model} vía Groq...")
-response = client.chat.completions.create(
-    model=selected_model,
-    messages=[{"role": "user", "content": prompt}],
-    temperature=0.7,
-    max_tokens=2048,
-)
+print(">>> [3/3] Ejecutando inferencia con sistema de reintento por modelo...")
+response = None
+used_model = None
+
+for model_candidate in candidate_models:
+  try:
+    print(f"-> Probando modelo: {model_candidate}")
+    response = client.chat.completions.create(
+        model=model_candidate,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=2048,
+    )
+    used_model = model_candidate
+    print(f"✓ Éxito con el modelo: {used_model}")
+    break
+  except Exception as e:
+    print(
+        f"x Falló el modelo {model_candidate} (Error: {str(e).split(' - ')[0]})."
+        " Probando siguiente..."
+    )
+
+if not response:
+  raise ValueError(
+      "Error crítico: Ninguno de los modelos candidatos pudo completar la"
+      " inferencia en Groq."
+  )
 
 body = response.choices[0].message.content
 
