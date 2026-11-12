@@ -16,36 +16,31 @@ client = OpenAI(
     api_key=api_key,
 )
 
-print(">>> [1.5/3] Obteniendo modelos disponibles en Groq...")
+print(">>> [1.5/3] Obteniendo modelos de chat disponibles en Groq...")
 try:
   models_response = client.models.list()
   available_models = [m.id for m in models_response.data]
 
-  # Selección dinámica priorizando modelos Llama estables
-  selected_model = None
-  for pref in [
-      "llama-3.3-70b",
-      "llama-3.1-70b",
-      "llama-3.1-8b",
-      "llama3",
-      "llama",
-  ]:
-    match = next((m for m in available_models if pref in m), None)
-    if match:
-      selected_model = match
-      break
+  # Filtrar exclusivamente modelos de chat válidos (descartando guard, embed, etc.)
+  valid_chat_models = [
+      m
+      for m in available_models
+      if not any(
+          x in m.lower() for x in ["guard", "embed", "whisper", "vision"]
+      )
+      and any(x in m.lower() for x in ["llama", "mixtral", "gemma"])
+  ]
 
-  if not selected_model and available_models:
-    selected_model = available_models[0]
-  elif not selected_model:
-    selected_model = "llama-3.3-70b-versatile"
-except Exception as e:
-  print(
-      f"Aviso al listar modelos ({e}), recurriendo a modelo por defecto."
+  selected_model = (
+      valid_chat_models[0]
+      if valid_chat_models
+      else (available_models[0] if available_models else "llama-3.3-70b-specdec")
   )
-  selected_model = "llama-3.3-70b-versatile"
+except Exception as e:
+  print(f"Aviso al listar modelos ({e}), usando modelo por defecto.")
+  selected_model = "llama-3.3-70b-specdec"
 
-print(f">>> Modelo seleccionado: {selected_model}")
+print(f">>> Modelo de chat seleccionado: {selected_model}")
 
 TOPICS = [
     (
@@ -66,7 +61,7 @@ TOPICS = [
     ),
     (
         "Optimización de consultas masivas y prevención de bloqueos en tablas"
-        " transaccionales de Business Central",
+        " transaccionales de Business Central"
     ),
 ]
 
@@ -91,7 +86,7 @@ response = client.chat.completions.create(
     model=selected_model,
     messages=[{"role": "user", "content": prompt}],
     temperature=0.7,
-    max_tokens=3000,
+    max_tokens=2048,
 )
 
 body = response.choices[0].message.content
