@@ -7,7 +7,8 @@ print(">>> [1/3] Verificando credenciales de Groq...")
 api_key = os.environ.get("GROQ_API_KEY")
 if not api_key:
   raise ValueError(
-      "Error crítico: La variable GROQ_API_KEY no está definida en los secretos."
+      "Error crítico: La variable GROQ_API_KEY no está definida en los"
+      " secretos."
   )
 
 # Cliente OpenAI apuntando al endpoint de Groq
@@ -57,7 +58,7 @@ Estructura obligatoria:
 
 print(">>> [3/3] Solicitando inferencia a Llama vía Groq...")
 response = client.chat.completions.create(
-    model="llama-3.1-8b-instant",
+    model="llama3-70b-8192",
     messages=[{"role": "user", "content": prompt}],
     temperature=0.7,
     max_tokens=3000,
