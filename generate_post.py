@@ -1,6 +1,8 @@
 import datetime
+import glob
 import os
 import random
+import time
 from openai import OpenAI
 
 print(">>> [1/3] Verificando credenciales de Groq...")
@@ -16,31 +18,47 @@ client = OpenAI(
     api_key=api_key,
 )
 
-print(">>> [1.5/3] Obteniendo modelos de chat disponibles en Groq...")
+print(">>> [1.5/3] Seleccionando modelo de chat estable en Groq...")
+# Modelos preferidos orientados a generación de texto y código en orden de prioridad
+PREFERRED_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-70b-versatile",
+    "llama-3.1-8b-instant",
+]
+selected_model = "llama-3.3-70b-versatile"  # Fallback seguro por defecto
+
 try:
   models_response = client.models.list()
-  available_models = [m.id for m in models_response.data]
+  available_ids = [m.id for m in models_response.data]
 
-  # Filtrar exclusivamente modelos de chat válidos (descartando guard, embed, etc.)
-  valid_chat_models = [
-      m
-      for m in available_models
-      if not any(
-          x in m.lower() for x in ["guard", "embed", "whisper", "vision"]
-      )
-      and any(x in m.lower() for x in ["llama", "mixtral", "gemma"])
-  ]
+  # Buscar primero entre los modelos preferidos conocidos
+  found = False
+  for model_candidate in PREFERRED_MODELS:
+    if model_candidate in available_ids:
+      selected_model = model_candidate
+      found = True
+      break
 
-  selected_model = (
-      valid_chat_models[0]
-      if valid_chat_models
-      else (available_models[0] if available_models else "llama-3.3-70b-specdec")
-  )
+  # Si no está en la lista preferida, buscar cualquier modelo de chat válido excluyendo guards/embeds
+  if not found:
+    chat_models = [
+        m
+        for m in available_ids
+        if any(k in m for k in ["70b", "8b", "inst", "vers"])
+        and not any(
+            x in m.lower()
+            for x in ["guard", "embed", "whisper", "vision", "moderation"]
+        )
+    ]
+    if chat_models:
+      selected_model = chat_models[0]
 except Exception as e:
-  print(f"Aviso al listar modelos ({e}), usando modelo por defecto.")
-  selected_model = "llama-3.3-70b-specdec"
+  print(
+      f"Aviso al listar modelos ({e}), usando modelo por defecto:"
+      f" {selected_model}"
+  )
 
-print(f">>> Modelo de chat seleccionado: {selected_model}")
+print(f">>> Modelo seleccionado: {selected_model}")
 
 TOPICS = [
     (
@@ -65,13 +83,38 @@ TOPICS = [
     ),
 ]
 
-selected_topic = random.choice(TOPICS)
-print(f">>> [2/3] Tema seleccionado: {selected_topic}")
+print(">>> [2/3] Comprobando posts existentes para evitar duplicados...")
+existing_titles = set()
+os.makedirs("content/posts", exist_ok=True)
+
+for filepath in glob.glob("content/posts/*.md"):
+  try:
+    with open(filepath, "r", encoding="utf-8") as f:
+      content = f.read()
+      for line in content.splitlines():
+        if line.startswith("title:"):
+          title_val = line.split(":", 1)[1].strip().strip('"')
+          existing_titles.add(title_val)
+  except Exception:
+    pass
+
+# Filtrar temas que ya hayan sido publicados
+available_topics = [t for t in TOPICS if t not in existing_titles]
+
+if not available_topics:
+  print(">>> Aviso: Todos los temas ya han sido publicados. Reiniciando ciclo.")
+  available_topics = TOPICS
+
+selected_topic = random.choice(available_topics)
+print(f">>> Tema seleccionado: {selected_topic}")
 
 date_str = datetime.datetime.now(datetime.timezone.utc).strftime(
     "%Y-%m-%dT%H:%M:%SZ"
 )
 slug_date = datetime.date.today().isoformat()
+timestamp_suffix = int(
+    time.time() * 1000
+)  # Sufijo único para evitar colisiones de ficheros
 
 prompt = f"""Escribe un artículo técnico avanzado y detallado en formato Markdown sobre el desarrollo en Microsoft Dynamics 365 Business Central (lenguaje AL) centrado en el siguiente tema: "{selected_topic}".
 
@@ -104,8 +147,7 @@ tags: ["Business Central", "AL", "Desarrollo", "Optimización"]
 {body}
 """
 
-os.makedirs("content/posts", exist_ok=True)
-filename = f"content/posts/post-{slug_date}-{random.randint(100, 999)}.md"
+filename = f"content/posts/post-{slug_date}-{timestamp_suffix}.md"
 
 with open(filename, "w", encoding="utf-8") as f:
   f.write(markdown_content)
