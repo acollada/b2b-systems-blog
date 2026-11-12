@@ -11,11 +11,41 @@ if not api_key:
       " secretos."
   )
 
-# Cliente OpenAI apuntando al endpoint de Groq
 client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
     api_key=api_key,
 )
+
+print(">>> [1.5/3] Obteniendo modelos disponibles en Groq...")
+try:
+  models_response = client.models.list()
+  available_models = [m.id for m in models_response.data]
+
+  # Selección dinámica priorizando modelos Llama estables
+  selected_model = None
+  for pref in [
+      "llama-3.3-70b",
+      "llama-3.1-70b",
+      "llama-3.1-8b",
+      "llama3",
+      "llama",
+  ]:
+    match = next((m for m in available_models if pref in m), None)
+    if match:
+      selected_model = match
+      break
+
+  if not selected_model and available_models:
+    selected_model = available_models[0]
+  elif not selected_model:
+    selected_model = "llama-3.3-70b-versatile"
+except Exception as e:
+  print(
+      f"Aviso al listar modelos ({e}), recurriendo a modelo por defecto."
+  )
+  selected_model = "llama-3.3-70b-versatile"
+
+print(f">>> Modelo seleccionado: {selected_model}")
 
 TOPICS = [
     (
@@ -56,9 +86,9 @@ Estructura obligatoria:
 3. Bloque de código AL de ejemplo comentado y optimizado (usando sintaxis limpia y buenas prácticas de AL).
 4. Buenas prácticas de rendimiento, escalabilidad y errores comunes a evitar."""
 
-print(">>> [3/3] Solicitando inferencia a Llama vía Groq...")
+print(f">>> [3/3] Solicitando inferencia a {selected_model} vía Groq...")
 response = client.chat.completions.create(
-    model="llama3-70b-8192",
+    model=selected_model,
     messages=[{"role": "user", "content": prompt}],
     temperature=0.7,
     max_tokens=3000,
