@@ -55,9 +55,9 @@ Estructura obligatoria:
 3. Bloque de código AL de ejemplo comentado y optimizado (usando sintaxis limpia y buenas prácticas de AL).
 4. Buenas prácticas de rendimiento, escalabilidad y errores comunes a evitar."""
 
-print(">>> [3/3] Solicitando inferencia a Llama-3.3-70B vía Groq...")
+print(">>> [3/3] Solicitando inferencia a Llama vía Groq...")
 response = client.chat.completions.create(
-    model="llama-3.3-70b-versatile",
+    model="llama-3.1-8b-instant",
     messages=[{"role": "user", "content": prompt}],
     temperature=0.7,
     max_tokens=3000,
